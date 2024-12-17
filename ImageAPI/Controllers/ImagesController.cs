@@ -42,14 +42,15 @@ namespace ImageAPI.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet("{id}")]
-        public ActionResult<Models.Image> Get(int id)
+        public IActionResult GetById(int id)
         {
-            Models.Image? image = _imageRepositoryDB.GetById(id);
+            var image = _imageRepositoryDB.GetById(id);
             if (image == null)
             {
-                return NotFound();
+                return NotFound("Image not found.");
             }
-            return Ok(image);
+
+            return File(image.Data, "image/jpeg"); // Returnér binære data som billede
         }
 
         // POST api/<ImagesController>
