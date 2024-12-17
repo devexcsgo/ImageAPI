@@ -17,26 +17,21 @@ namespace ImageAPI.Controllers
         }
 
         // GET ALL: api/<ImagesController>
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet]
-        public ActionResult<IEnumerable<Models.Image>> GetAll()
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public IActionResult GetAllImages()
         {
-            try
+            var images = _imageRepositoryDB.GetAll().Select(image => new
             {
-                IEnumerable<Models.Image> images = _imageRepositoryDB.GetAll();
-                if (images == null || !images.Any())
-                {
-                    return NotFound("No images found.");
-                }
-                return Ok(images);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-                return StatusCode(500, "Internal Server Error: " + ex.Message);
-            }
+                image.Id,
+                image.Name,
+                Timestamp = image.Timestamp,
+                Data = Convert.ToBase64String(image.Data) // Konverter til base64
+            });
+
+            return Ok(images);
         }
+
 
         // GET api/<ImagesController>/5
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -54,42 +49,35 @@ namespace ImageAPI.Controllers
         }
 
         // POST api/<ImagesController>
+        [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [HttpPost]
-        public async Task<ActionResult<Models.Image>> Post([FromForm] IFormFile file, [FromForm] string name)
+        public async Task<IActionResult> UploadImage(IFormFile file, [FromForm] string name)
         {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
             try
             {
-                if (file == null || file.Length == 0)
-                    return BadRequest("No file uploaded.");
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
 
-                // Læs filen som binære data
-                byte[] fileData;
-                using (var memoryStream = new MemoryStream())
-                {
-                    await file.CopyToAsync(memoryStream);
-                    fileData = memoryStream.ToArray();
-                }
-
-                // Opret nyt billede-objekt
-                var newImage = new Models.Image
+                var image = new Models.Image
                 {
                     Name = name,
-                    Path = file.FileName, // Filnavnet kan også gemmes i Path
-                    Data = fileData,      // Gem binære data i databasen
+                    Data = memoryStream.ToArray(), // Gem som binary data
                     Timestamp = DateTime.Now
                 };
 
-                // Gem i databasen
-                var createdImage = _imageRepositoryDB.Add(newImage);
-                return Created("/" + createdImage.Id, createdImage);
+                _imageRepositoryDB.Add(image); // Gem i databasen
+                return CreatedAtAction(nameof(GetById), new { id = image.Id }, image);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
+
 
 
 
