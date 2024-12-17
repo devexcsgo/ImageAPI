@@ -22,12 +22,20 @@ namespace ImageAPI.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<Models.Image>> GetAll()
         {
-            IEnumerable<Models.Image> images = _imageRepositoryDB.GetAll();
-            if (images == null || !images.Any())
+            try
             {
-                return NotFound();
+                IEnumerable<Models.Image> images = _imageRepositoryDB.GetAll();
+                if (images == null || !images.Any())
+                {
+                    return NotFound("No images found.");
+                }
+                return Ok(images);
             }
-            return Ok(images);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                return StatusCode(500, "Internal Server Error: " + ex.Message);
+            }
         }
 
         // GET api/<ImagesController>/5
