@@ -56,26 +56,41 @@ namespace ImageAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPost]
-        public ActionResult<Models.Image> Post([FromBody] Models.Image newImage)
+        public async Task<ActionResult<Models.Image>> Post([FromForm] IFormFile file, [FromForm] string name)
         {
             try
             {
-                Models.Image createdImage = _imageRepositoryDB.Add(newImage);
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                // Læs filen som binære data
+                byte[] fileData;
+                using (var memoryStream = new MemoryStream())
+                {
+                    await file.CopyToAsync(memoryStream);
+                    fileData = memoryStream.ToArray();
+                }
+
+                // Opret nyt billede-objekt
+                var newImage = new Models.Image
+                {
+                    Name = name,
+                    Path = file.FileName, // Filnavnet kan også gemmes i Path
+                    Data = fileData,      // Gem binære data i databasen
+                    Timestamp = DateTime.Now
+                };
+
+                // Gem i databasen
+                var createdImage = _imageRepositoryDB.Add(newImage);
                 return Created("/" + createdImage.Id, createdImage);
-            }
-            catch (ArgumentNullException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (ArgumentOutOfRangeException ex)
-            {
-                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
+
+
 
         // PUT api/<ImagesController>/5
         [ProducesResponseType(StatusCodes.Status201Created)]
