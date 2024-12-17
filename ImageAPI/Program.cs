@@ -7,8 +7,10 @@ var builder = WebApplication.CreateBuilder(args);
 // CORS policy
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: "AllowAll",
-                      policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod());
 });
 
 // Swagger/OpenAPI
@@ -29,6 +31,8 @@ builder.Services.AddScoped<ImageRepositoryDB>();
 
 var app = builder.Build();
 
+app.UseCors("AllowAll");
+
 // Initialize database
 using (var scope = app.Services.CreateScope())
 {
@@ -40,8 +44,6 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// CORS policy
-app.UseCors("AllowAll");
 
 app.UseAuthorization();
 
