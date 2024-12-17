@@ -10,5 +10,7 @@
         {
             return $"Id: {Id}, Name: {Name}, Time: {Timestamp:dd-MM-yyyy HH:mm:ss}";
         }
+
+        //bombehund
     }
 }
