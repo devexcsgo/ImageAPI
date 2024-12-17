@@ -1,22 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using ImageAPI;
-using ImageAPI.Repository; 
+using ImageAPI.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// CORS policy
+// Tilføj CORS policy (Allow All)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: "AllowAll",
-                      policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
 });
 
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Controllers
+// Registrér controllers og ImageRepositoryDB
 builder.Services.AddControllers();
+builder.Services.AddScoped<ImageRepositoryDB>();
 
 // Database context
 builder.Services.AddDbContext<ImageDbContext>(options =>
@@ -24,27 +27,29 @@ builder.Services.AddDbContext<ImageDbContext>(options =>
     options.UseSqlServer(Secret.ConnectionString);
 });
 
-// Registrér ImageRepositoryDB som en service
-builder.Services.AddScoped<ImageRepositoryDB>();
-
 var app = builder.Build();
 
-// Initialize database
+// Initialiser database (migrering hvis nødvendigt)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ImageDbContext>();
-    db.Database.EnsureCreated(); // Initialize the database
+    db.Database.Migrate(); // Bruger Migrate i stedet for EnsureCreated til produktion
 }
 
-// Swagger
-app.UseSwagger();
-app.UseSwaggerUI();
+// Middleware-konfiguration
 
-// CORS policy
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
+
+// Aktiver CORS
 app.UseCors("AllowAll");
 
+// Authorization skal altid være før MapControllers
 app.UseAuthorization();
 
+// Map controllers
 app.MapControllers();
 
+// Kør applikationen
 app.Run();
